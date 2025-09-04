@@ -7,18 +7,29 @@ import re
 
 class SerialReader:
     def __init__(self):
-        self.ser = serial.Serial(Config.SERIAL_PORT, Config.BAUD_RATE, timeout=1)
+        self.ser = serial.Serial(Config.SERIAL_PORT, Config.BAUD_RATE, timeout=0) # non-blocking
         time.sleep(2)  # allow ESP32 reset
+        self.ser.reset_input_buffer()  # <-- flush old serial data
 
     def read_line(self):
-        if self.ser.in_waiting > 0:
+        try:
             line = self.ser.readline().decode("utf-8").strip()
-            return self.parse_line(line)
+            if line:
+                return self.parse_line(line)
+        except Exception as e:
+            print("Serial read error:", e)
         return None
 
     def parse_line(self, line):
-        # Example: Humidity: 55.00% | Temp: 28.40C/83.12F | Passengers: 43 | Distance: 18.72 cm | Buzzer: OFF
-        pattern = r"Humidity: ([\d.]+)% \| Temp: ([\d.]+)C/([\d.]+)F \| Passengers: (\d+) \| Distance: ([\d.]+) cm \| Buzzer: (ON|OFF)"
+        # Example: Humidity: 61.00% | Temp: 27.00C/80.60F | Passengers: 19 | Distance: 29.43 cm | GPS: 6.927100, 79.861200 | Buzzer: OFF
+        pattern = (
+            r"Humidity: ([\d.]+)% \| "
+            r"Temp: ([\d.]+)C/([\d.]+)F \| "
+            r"Passengers: (\d+) \| "
+            r"Distance: ([\d.]+) cm \| "
+            r"GPS: ([\d.-]+), ([\d.-]+) \| "
+            r"Buzzer: (ON|OFF)"
+        )
         match = re.match(pattern, line)
         if match:
             return {
@@ -27,6 +38,8 @@ class SerialReader:
                 "temp_f": float(match.group(3)),
                 "passengers": int(match.group(4)),
                 "distance": float(match.group(5)),
-                "buzzer": match.group(6),
+                "latitude": float(match.group(6)),
+                "longitude": float(match.group(7)),
+                "buzzer": match.group(8),
             }
         return None

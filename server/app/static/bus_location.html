@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bus Location</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <style>
+        #map { height: 90vh; width: 100%; }
+        body { margin: 0; font-family: Arial, sans-serif; }
+        .back-btn { margin: 10px; padding: 8px 16px; background: #007bff; color: #fff; border: none; border-radius: 4px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <div style="width: 100%; text-align: left; padding: 16px 0 0 16px;">
+        <button class="back-btn" onclick="window.location.href='index.html'">Back to Dashboard</button>
+    </div>
+    <div id="map"></div>
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script>
+        // Dummy bus coordinates, 
+        var busLat = 7.259723; // Example: Kandy
+        var busLng = 80.599636;
+        var map = L.map('map').setView([busLat, busLng], 13);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '© OpenStreetMap'
+        }).addTo(map);
+        var marker = L.marker([busLat, busLng]).addTo(map);
+        marker.bindPopup("Bus Location").openPopup();
+    </script>
+</body>
+</html>

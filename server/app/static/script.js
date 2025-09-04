@@ -32,6 +32,8 @@ function updateLiveValues(latest) {
   document.getElementById('passengers').textContent = latest?.passengers ?? '-';
   document.getElementById('distance').textContent = latest?.distance ?? '-';
   document.getElementById('buzzer').textContent = latest?.buzzer ?? '-';
+  document.getElementById('latitude').textContent = latest?.latitude ?? '-';
+  document.getElementById('longitude').textContent = latest?.longitude ?? '-';
 }
 
 async function fetchData() {
@@ -81,6 +83,8 @@ async function fetchData() {
       <td>${row.temp_f}</td>
       <td>${row.distance}</td>
       <td>${row.buzzer}</td>
+      <td>${row.latitude}</td>
+      <td>${row.longitude}</td>
     `;
     tableBody.appendChild(tr);
   });

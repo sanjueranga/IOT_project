@@ -9,18 +9,33 @@
 
 <body>
   <h1>IoT Sensor Dashboard</h1>
+  <h2>Live Sensor Values</h2>
   <div class="live-values">
-    <div>Humidity: <span id="humidity">-</span>%</div>
-    <div>Temperature: <span id="temp_c">-</span>°C / <span id="temp_f">-</span>°F</div>
-    <div>Passengers: <span id="passengers">-</span></div>
-    <div>Distance: <span id="distance">-</span> cm</div>
-    <div>Buzzer: <span id="buzzer">-</span></div>
+    <div><strong>Humidity:</strong> <span id="humidity">-</span>%</div>
+    <div><strong>Temperature:</strong> <span id="temp_c">-</span>°C / <span id="temp_f">-</span>°F</div>
+    <div><strong>Passengers:</strong> <span id="passengers">-</span></div>
+    <div><strong>Distance:</strong> <span id="distance">-</span> cm</div>
+    <div><strong>Buzzer:</strong> <span id="buzzer">-</span></div>
   </div>
+
+  <h2>Sensor Data Charts</h2>
   <div class="charts">
-    <canvas id="humidityChart"></canvas>
-    <canvas id="tempChart"></canvas>
-    <canvas id="passengersChart"></canvas>
-    <canvas id="distanceChart"></canvas>
+    <div class="chart-container">
+      <div class="chart-label">Humidity (%)</div>
+      <canvas id="humidityChart"></canvas>
+    </div>
+    <div class="chart-container">
+      <div class="chart-label">Temperature (°C/°F)</div>
+      <canvas id="tempChart"></canvas>
+    </div>
+    <div class="chart-container">
+      <div class="chart-label">Passengers</div>
+      <canvas id="passengersChart"></canvas>
+    </div>
+    <div class="chart-container">
+      <div class="chart-label">Distance (cm)</div>
+      <canvas id="distanceChart"></canvas>
+    </div>
   </div>
 
   <h2>Recent Sensor Data</h2>
@@ -32,7 +47,6 @@
           <th>Humidity (%)</th>
           <th>Temp (°C)</th>
           <th>Temp (°F)</th>
-          <th>Passengers</th>
           <th>Distance (cm)</th>
           <th>Buzzer</th>
         </tr>

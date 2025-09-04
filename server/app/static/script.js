@@ -79,7 +79,6 @@ async function fetchData() {
       <td>${row.humidity}</td>
       <td>${row.temp_c}</td>
       <td>${row.temp_f}</td>
-      <td>${row.passengers}</td>
       <td>${row.distance}</td>
       <td>${row.buzzer}</td>
     `;

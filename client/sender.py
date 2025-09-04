@@ -1,19 +1,25 @@
-import requests
-from config import Config
+import asyncio
+import websockets
+import json
 from utils.logger import get_logger
+from config import Config
 
 logger = get_logger(__name__)
 
-
 class Sender:
     def __init__(self):
-        self.url = Config.SERVER_URL
+        self.uri = Config.SERVER_WS_URL
+        self.websocket = None
 
-    def send(self, data):
-        if not data:
-            return
-        try:
-            response = requests.post(self.url, json=data, timeout=5)
-            logger.info(f"Sent: {data}, Response: {response.status_code}")
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Error sending to server: {e}")
+    async def connect(self):
+        self.websocket = await websockets.connect(self.uri)
+        logger.info("WebSocket connected to server")
+
+    async def send(self, data):
+        if self.websocket and data:
+            try:
+                message = json.dumps(data)
+                await self.websocket.send(message)
+                logger.info(f"Sent: {message}")
+            except Exception as e:
+                logger.error(f"WebSocket send error: {e}")

@@ -3,7 +3,7 @@
 
 <head>
   <title>IoT Dashboard</title>
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="/static/styles.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 
@@ -11,6 +11,7 @@
   <h1>IoT Sensor Dashboard</h1>
   <h2>Live Sensor Values</h2>
   <div class="live-values">
+    <div>WebSocket Status: <span id="wsStatus">Disconnected</span></div>
     <div><strong>Humidity:</strong> <span id="humidity">-</span>%</div>
     <div><strong>Temperature:</strong> <span id="temp_c">-</span>°C / <span id="temp_f">-</span>°F</div>
     <div><strong>Passengers:</strong> <span id="passengers">-</span></div>
@@ -60,7 +61,7 @@
       </tbody>
     </table>
   </div>
-  <script src="script.js"></script>
+  <script src="/static/script.js"></script>
 </body>
 
 </html>

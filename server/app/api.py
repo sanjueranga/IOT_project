@@ -1,17 +1,16 @@
 from fastapi import APIRouter
-from pydantic import BaseModel
 from .storage import Storage
+from .models import SensorData
 
 router = APIRouter()
 storage = Storage()
 
-class SensorData(BaseModel):
-    value: float
 
 @router.post("/data")
 def receive_data(data: SensorData):
-    storage.add_data(data.value)
+    storage.add_data(data.dict())
     return {"status": "ok"}
+
 
 @router.get("/data")
 def get_data():

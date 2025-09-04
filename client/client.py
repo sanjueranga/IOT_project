@@ -6,6 +6,7 @@ from utils.logger import get_logger
 
 logger = get_logger("Client")
 
+
 def main():
     reader = SerialReader()
     sender = Sender()
@@ -18,6 +19,7 @@ def main():
             logger.info(f"Received: {line}")
             sender.send(line)
         time.sleep(Config.READ_INTERVAL)
+
 
 if __name__ == "__main__":
     main()

@@ -1,13 +1,48 @@
 <!DOCTYPE html>
 <html>
+
 <head>
   <title>IoT Dashboard</title>
   <link rel="stylesheet" href="styles.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
+
 <body>
   <h1>IoT Sensor Dashboard</h1>
-  <canvas id="chart"></canvas>
+  <div class="live-values">
+    <div>Humidity: <span id="humidity">-</span>%</div>
+    <div>Temperature: <span id="temp_c">-</span>°C / <span id="temp_f">-</span>°F</div>
+    <div>Passengers: <span id="passengers">-</span></div>
+    <div>Distance: <span id="distance">-</span> cm</div>
+    <div>Buzzer: <span id="buzzer">-</span></div>
+  </div>
+  <div class="charts">
+    <canvas id="humidityChart"></canvas>
+    <canvas id="tempChart"></canvas>
+    <canvas id="passengersChart"></canvas>
+    <canvas id="distanceChart"></canvas>
+  </div>
+
+  <h2>Recent Sensor Data</h2>
+  <div class="table-container">
+    <table id="dataTable">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Humidity (%)</th>
+          <th>Temp (°C)</th>
+          <th>Temp (°F)</th>
+          <th>Passengers</th>
+          <th>Distance (cm)</th>
+          <th>Buzzer</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Data rows will be inserted here by JS -->
+      </tbody>
+    </table>
+  </div>
   <script src="script.js"></script>
 </body>
+
 </html>

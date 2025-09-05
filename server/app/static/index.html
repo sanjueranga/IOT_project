@@ -10,6 +10,11 @@
 <body>
   <h1>IoT Sensor Dashboard</h1>
   <h2>Live Sensor Values</h2>
+  <div style="margin: 20px 0; text-align: center;">
+    <button onclick="window.location.href='bus_location.html'"
+      style="padding: 12px 24px; font-size: 1.1em; background: #28a745; color: #fff; border: none; border-radius: 5px; cursor: pointer;">Locate
+      the Bus</button>
+  </div>
   <div class="live-values">
     <div>WebSocket Status: <span id="wsStatus">Disconnected</span></div>
     <div><strong>Humidity:</strong> <span id="humidity">-</span>%</div>

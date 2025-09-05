@@ -141,59 +141,114 @@
             statusElement.className = status === 'Connected' ? 'connected' : 'disconnected';
         }
 
-        // Update bus location on map with new coordinates from ESP32
-        function updateBusLocation(lat, lng) {
-            if (lat && lng && !isNaN(lat) && !isNaN(lng)) {
-                const newLat = parseFloat(lat);
-                const newLng = parseFloat(lng);
+        // Performance optimization variables for map updates
+        let mapUpdatePending = false;
+        let latestMapData = null;
+        const MAP_UPDATE_THROTTLE_MS = 500; // Update map max every 500ms
 
-                // Only update if coordinates actually changed
-                if (Math.abs(newLat - currentLat) > 0.000001 || Math.abs(newLng - currentLng) > 0.000001) {
-                    currentLat = newLat;
-                    currentLng = newLng;
+        // Throttled map update using requestAnimationFrame
+        function throttledMapUpdate() {
+            if (mapUpdatePending || !latestMapData) return;
 
-                    console.log('Updating bus location to:', currentLat, currentLng);
-
-                    // Update marker position
-                    busMarker.setLatLng([currentLat, currentLng]);
-
-                    // Update popup content with real-time data
-                    busMarker.setPopupContent(`
-                        <b>🚌 Bus Location (Live)</b><br>
-                        <strong>Latitude:</strong> ${currentLat.toFixed(6)}<br>
-                        <strong>Longitude:</strong> ${currentLng.toFixed(6)}<br>
-                        <strong>Data Source:</strong> ESP32 GPS (Real-time)<br>
-                        <strong>Last Update:</strong> ${new Date().toLocaleString()}
-                    `);
-
-                    // Smoothly pan map to new location
-                    map.panTo([currentLat, currentLng]);
-
-                    // Update display
-                    updateCoordinatesDisplay();
-                    document.getElementById('lastUpdate').textContent = new Date().toLocaleString();
-
-                    // Store updated coordinates in localStorage
-                    localStorage.setItem('busLatitude', currentLat);
-                    localStorage.setItem('busLongitude', currentLng);
-                    localStorage.setItem('lastUpdate', new Date().toLocaleString());
+            mapUpdatePending = true;
+            requestAnimationFrame(() => {
+                try {
+                    performMapUpdate(latestMapData.lat, latestMapData.lng);
+                } catch (error) {
+                    console.error('Error during map update:', error);
+                } finally {
+                    mapUpdatePending = false;
+                    latestMapData = null;
                 }
+            });
+        }
+
+        // Schedule map update with throttling
+        function scheduleMapUpdate(lat, lng) {
+            latestMapData = { lat, lng };
+
+            if (!mapUpdatePending) {
+                setTimeout(() => {
+                    throttledMapUpdate();
+                }, MAP_UPDATE_THROTTLE_MS);
             }
         }
 
-        // Connect to WebSocket for real-time GPS updates from ESP32
+        // Actual map update function
+        function performMapUpdate(lat, lng) {
+            const newLat = parseFloat(lat);
+            const newLng = parseFloat(lng);
+
+            // Only update if coordinates actually changed significantly
+            const threshold = 0.000001;
+            if (Math.abs(newLat - currentLat) > threshold || Math.abs(newLng - currentLng) > threshold) {
+                currentLat = newLat;
+                currentLng = newLng;
+
+                console.log('Updating bus location to:', currentLat, currentLng);
+
+                // Update marker position
+                busMarker.setLatLng([currentLat, currentLng]);
+
+                // Update popup content with real-time data
+                busMarker.setPopupContent(`
+                    <b>🚌 Bus Location (Live)</b><br>
+                    <strong>Latitude:</strong> ${currentLat.toFixed(6)}<br>
+                    <strong>Longitude:</strong> ${currentLng.toFixed(6)}<br>
+                    <strong>Data Source:</strong> ESP32 GPS (Real-time)<br>
+                    <strong>Last Update:</strong> ${new Date().toLocaleString()}
+                `);
+
+                // Smoothly pan map to new location
+                map.panTo([currentLat, currentLng]);
+
+                // Update display
+                updateCoordinatesDisplay();
+                document.getElementById('lastUpdate').textContent = new Date().toLocaleString();
+
+                // Store updated coordinates in localStorage
+                localStorage.setItem('busLatitude', currentLat);
+                localStorage.setItem('busLongitude', currentLng);
+                localStorage.setItem('lastUpdate', new Date().toLocaleString());
+            }
+        }
+
+        // Update bus location on map with new coordinates from ESP32
+        function updateBusLocation(lat, lng) {
+            if (lat && lng && !isNaN(lat) && !isNaN(lng)) {
+                scheduleMapUpdate(lat, lng);
+            }
+        }
+
+        // Connect to WebSocket for real-time GPS updates from ESP32 with exponential backoff
+        let wsReconnectAttempts = 0;
+        const WS_MAX_RECONNECT_DELAY = 30000;
+        const WS_BASE_RECONNECT_DELAY = 1000;
+
         function connectWebSocket() {
             ws = new WebSocket("ws://localhost:8000/ws");
 
             ws.onopen = () => {
                 console.log("WebSocket connected - ready to receive GPS updates");
                 updateWSStatus("Connected");
+                wsReconnectAttempts = 0; // Reset on successful connection
             };
 
             ws.onclose = () => {
                 console.log("WebSocket disconnected. Attempting to reconnect...");
                 updateWSStatus("Disconnected");
-                setTimeout(connectWebSocket, 2000);
+
+                // Exponential backoff with jitter
+                const delay = Math.min(
+                    WS_BASE_RECONNECT_DELAY * Math.pow(2, wsReconnectAttempts),
+                    WS_MAX_RECONNECT_DELAY
+                );
+                const jitter = Math.random() * 1000;
+
+                wsReconnectAttempts++;
+                console.log(`Map WS reconnect attempt ${wsReconnectAttempts} in ${(delay + jitter) / 1000}s`);
+
+                setTimeout(connectWebSocket, delay + jitter);
             };
 
             ws.onerror = (err) => {
@@ -204,7 +259,6 @@
             ws.onmessage = (event) => {
                 try {
                     const data = JSON.parse(event.data);
-                    console.log('Received GPS data:', data);
 
                     // Check if we have valid GPS coordinates from ESP32
                     if (data.latitude && data.longitude) {

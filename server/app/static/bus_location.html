@@ -1,33 +1,228 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bus Location</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
     <style>
-        #map { height: 90vh; width: 100%; }
-        body { margin: 0; font-family: Arial, sans-serif; }
-        .back-btn { margin: 10px; padding: 8px 16px; background: #007bff; color: #fff; border: none; border-radius: 4px; cursor: pointer; }
+        #map {
+            height: 85vh;
+            width: 100%;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+        }
+
+        .header {
+            padding: 16px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .back-btn {
+            padding: 8px 16px;
+            background: #007bff;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 15px;
+        }
+
+        .location-info {
+            display: inline-block;
+            font-size: 14px;
+            color: #666;
+        }
+
+        .status {
+            margin-top: 5px;
+            font-size: 12px;
+        }
+
+        .connected {
+            color: green;
+        }
+
+        .disconnected {
+            color: red;
+        }
     </style>
 </head>
+
 <body>
-    <div style="width: 100%; text-align: left; padding: 16px 0 0 16px;">
+    <div class="header">
         <button class="back-btn" onclick="window.location.href='index.html'">Back to Dashboard</button>
+        <div class="location-info">
+            <strong>Current Bus Location:</strong>
+            <span id="coordinates">Loading...</span>
+            <div class="status">
+                WebSocket: <span id="wsStatus" class="disconnected">Connecting...</span> |
+                Last Update: <span id="lastUpdate">-</span>
+            </div>
+        </div>
     </div>
     <div id="map"></div>
+
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
     <script>
-        // Dummy bus coordinates, 
-        var busLat = 7.259723; // Example: Kandy
-        var busLng = 80.599636;
-        var map = L.map('map').setView([busLat, busLng], 13);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            maxZoom: 19,
-            attribution: '© OpenStreetMap'
-        }).addTo(map);
-        var marker = L.marker([busLat, busLng]).addTo(map);
-        marker.bindPopup("Bus Location").openPopup();
+        // Global variables
+        let map;
+        let busMarker;
+        let ws;
+        let currentLat = null;
+        let currentLng = null;
+
+        // Initialize map with coordinates from device or default location
+        function initializeMap() {
+            // Try to get coordinates from localStorage (passed from main dashboard)
+            const storedLat = localStorage.getItem('busLatitude');
+            const storedLng = localStorage.getItem('busLongitude');
+            const lastUpdate = localStorage.getItem('lastUpdate');
+
+            if (storedLat && storedLng && storedLat !== 'null' && storedLng !== 'null') {
+                currentLat = parseFloat(storedLat);
+                currentLng = parseFloat(storedLng);
+                document.getElementById('lastUpdate').textContent = lastUpdate || 'Unknown';
+                console.log('Using stored coordinates:', currentLat, currentLng);
+            } else {
+                // Default location (Kandy, Sri Lanka) - only if no GPS data available
+                currentLat = 7.259723;
+                currentLng = 80.599636;
+                console.log('Using default coordinates (no GPS data available)');
+            }
+
+            // Create map
+            map = L.map('map').setView([currentLat, currentLng], 15);
+
+            // Add tile layer
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+
+            // Create custom bus icon
+            const busIcon = L.divIcon({
+                html: '🚌',
+                iconSize: [30, 30],
+                className: 'bus-marker',
+                iconAnchor: [15, 15]
+            });
+
+            // Add bus marker
+            busMarker = L.marker([currentLat, currentLng], { icon: busIcon }).addTo(map);
+
+            const isRealGPS = storedLat && storedLng && storedLat !== 'null' && storedLng !== 'null';
+            busMarker.bindPopup(`
+                <b>🚌 Bus Location</b><br>
+                <strong>Latitude:</strong> ${currentLat.toFixed(6)}<br>
+                <strong>Longitude:</strong> ${currentLng.toFixed(6)}<br>
+                <strong>Data Source:</strong> ${isRealGPS ? 'ESP32 GPS' : 'Default Location'}<br>
+                <strong>Last Update:</strong> ${lastUpdate || 'Unknown'}
+            `).openPopup();
+
+            updateCoordinatesDisplay();
+        }
+
+        // Update coordinates display in header
+        function updateCoordinatesDisplay() {
+            document.getElementById('coordinates').textContent =
+                `${currentLat?.toFixed(6) || 'N/A'}, ${currentLng?.toFixed(6) || 'N/A'}`;
+        }
+
+        // Update WebSocket status indicator
+        function updateWSStatus(status) {
+            const statusElement = document.getElementById('wsStatus');
+            statusElement.textContent = status;
+            statusElement.className = status === 'Connected' ? 'connected' : 'disconnected';
+        }
+
+        // Update bus location on map with new coordinates from ESP32
+        function updateBusLocation(lat, lng) {
+            if (lat && lng && !isNaN(lat) && !isNaN(lng)) {
+                const newLat = parseFloat(lat);
+                const newLng = parseFloat(lng);
+
+                // Only update if coordinates actually changed
+                if (Math.abs(newLat - currentLat) > 0.000001 || Math.abs(newLng - currentLng) > 0.000001) {
+                    currentLat = newLat;
+                    currentLng = newLng;
+
+                    console.log('Updating bus location to:', currentLat, currentLng);
+
+                    // Update marker position
+                    busMarker.setLatLng([currentLat, currentLng]);
+
+                    // Update popup content with real-time data
+                    busMarker.setPopupContent(`
+                        <b>🚌 Bus Location (Live)</b><br>
+                        <strong>Latitude:</strong> ${currentLat.toFixed(6)}<br>
+                        <strong>Longitude:</strong> ${currentLng.toFixed(6)}<br>
+                        <strong>Data Source:</strong> ESP32 GPS (Real-time)<br>
+                        <strong>Last Update:</strong> ${new Date().toLocaleString()}
+                    `);
+
+                    // Smoothly pan map to new location
+                    map.panTo([currentLat, currentLng]);
+
+                    // Update display
+                    updateCoordinatesDisplay();
+                    document.getElementById('lastUpdate').textContent = new Date().toLocaleString();
+
+                    // Store updated coordinates in localStorage
+                    localStorage.setItem('busLatitude', currentLat);
+                    localStorage.setItem('busLongitude', currentLng);
+                    localStorage.setItem('lastUpdate', new Date().toLocaleString());
+                }
+            }
+        }
+
+        // Connect to WebSocket for real-time GPS updates from ESP32
+        function connectWebSocket() {
+            ws = new WebSocket("ws://localhost:8000/ws");
+
+            ws.onopen = () => {
+                console.log("WebSocket connected - ready to receive GPS updates");
+                updateWSStatus("Connected");
+            };
+
+            ws.onclose = () => {
+                console.log("WebSocket disconnected. Attempting to reconnect...");
+                updateWSStatus("Disconnected");
+                setTimeout(connectWebSocket, 2000);
+            };
+
+            ws.onerror = (err) => {
+                console.error("WebSocket error:", err);
+                updateWSStatus("Error");
+            };
+
+            ws.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    console.log('Received GPS data:', data);
+
+                    // Check if we have valid GPS coordinates from ESP32
+                    if (data.latitude && data.longitude) {
+                        updateBusLocation(data.latitude, data.longitude);
+                    }
+                } catch (error) {
+                    console.error("Error parsing WebSocket message:", error);
+                }
+            };
+        }
+
+        // Initialize everything when page loads
+        document.addEventListener('DOMContentLoaded', function () {
+            console.log('Bus location page loaded');
+            initializeMap();
+            connectWebSocket();
+        });
     </script>
 </body>
+
 </html>

@@ -2,10 +2,14 @@ import asyncio
 import websockets
 import json
 import time
-from utils.logger import get_logger
+import logging
 from config import Config
 
-logger = get_logger(__name__)
+# Set up logging
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s"
+)
+logger = logging.getLogger(__name__)
 
 
 class Sender:

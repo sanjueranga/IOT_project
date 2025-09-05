@@ -1,11 +1,19 @@
 import asyncio
 import signal
 import sys
+import logging
+import time
 from serial_reader import SerialReader
 from sender import Sender
-from utils.logger import get_logger
+from config import Config
 
-logger = get_logger("Client")
+# Set up detailed logging
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    handlers=[logging.FileHandler("iot_client.log"), logging.StreamHandler()],
+)
+logger = logging.getLogger("Client")
 
 
 class IoTClient:
@@ -13,6 +21,8 @@ class IoTClient:
         self.reader = SerialReader()
         self.sender = Sender()
         self.running = False
+        self.data_count = 0
+        self.last_data_time = time.time()
 
     async def start(self):
         """Start the IoT client with proper error handling."""
@@ -26,17 +36,35 @@ class IoTClient:
         signal.signal(signal.SIGINT, lambda s, f: signal_handler())
         signal.signal(signal.SIGTERM, lambda s, f: signal_handler())
 
-        await self.sender.connect()  # initial connection
+        # Check serial connection
+        if not self.reader.ser:
+            logger.error("Failed to connect to ESP32. Check COM port and cable.")
+            return
+
+        # Connect to WebSocket server
+        await self.sender.connect()
         logger.info("IoT Client started, listening to ESP32...")
 
         try:
             while self.running:
-                line = self.reader.read_line()
-                if line:
-                    await self.sender.send(line)  # send via persistent WS with batching
+                # Read from ESP32
+                data = self.reader.read_line()
 
-                # Small sleep to prevent excessive CPU usage
-                await asyncio.sleep(0.01)  # 10ms sleep for better performance
+                if data:
+                    self.data_count += 1
+                    self.last_data_time = time.time()
+                    logger.info(f"Data #{self.data_count} received: {data}")
+
+                    # Send to server
+                    await self.sender.send(data)
+                else:
+                    # Check if we haven't received data for a while
+                    if time.time() - self.last_data_time > 10:  # 10 seconds
+                        logger.warning("No data received from ESP32 for 10 seconds")
+                        self.last_data_time = time.time()  # Reset timer
+
+                # Sleep according to config
+                await asyncio.sleep(Config.READ_INTERVAL)
 
         except KeyboardInterrupt:
             logger.info("KeyboardInterrupt received")
@@ -55,6 +83,11 @@ class IoTClient:
             # Close WebSocket connection gracefully
             if self.sender.websocket and not self.sender.websocket.closed:
                 await self.sender.websocket.close()
+
+            # Close serial connection
+            if self.reader.ser and self.reader.ser.is_open:
+                self.reader.ser.close()
+                logger.info("Serial connection closed")
 
         except Exception as e:
             logger.error(f"Error during cleanup: {e}")

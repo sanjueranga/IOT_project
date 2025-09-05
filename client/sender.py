@@ -36,7 +36,6 @@ class Sender:
                 logger.error("Reconnect failed, skipping send")
                 return
 
-
         try:
             message = json.dumps(data)
             await self.websocket.send(message)

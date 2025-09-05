@@ -5,12 +5,10 @@ from .models import SensorData
 router = APIRouter()
 storage = Storage()
 
-
 @router.post("/data")
 def receive_data(data: SensorData):
     storage.add_data(data.dict())
     return {"status": "ok"}
-
 
 @router.get("/data")
 def get_data():

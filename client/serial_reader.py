@@ -4,7 +4,6 @@ from config import Config
 
 import re
 
-
 class SerialReader:
     def __init__(self):
         self.ser = serial.Serial(Config.SERIAL_PORT, Config.BAUD_RATE, timeout=0) # non-blocking

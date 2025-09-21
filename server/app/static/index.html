@@ -3,22 +3,27 @@
 
 <head>
   <title>IoT Dashboard</title>
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="/static/styles.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 
 <body>
   <h1>IoT Sensor Dashboard</h1>
   <h2>Live Sensor Values</h2>
-      <div style="margin: 20px 0; text-align: center;">
-      <button onclick="window.location.href='bus_location.html'" style="padding: 12px 24px; font-size: 1.1em; background: #28a745; color: #fff; border: none; border-radius: 5px; cursor: pointer;">Locate the Bus</button>
-    </div>
+  <div style="margin: 20px 0; text-align: center;">
+    <button onclick="window.location.href='bus_location.html'"
+      style="padding: 12px 24px; font-size: 1.1em; background: #28a745; color: #fff; border: none; border-radius: 5px; cursor: pointer;">Locate
+      the Bus</button>
+  </div>
   <div class="live-values">
+    <div>WebSocket Status: <span id="wsStatus">Disconnected</span></div>
     <div><strong>Humidity:</strong> <span id="humidity">-</span>%</div>
     <div><strong>Temperature:</strong> <span id="temp_c">-</span>°C / <span id="temp_f">-</span>°F</div>
     <div><strong>Passengers:</strong> <span id="passengers">-</span></div>
     <div><strong>Distance:</strong> <span id="distance">-</span> cm</div>
     <div><strong>Buzzer:</strong> <span id="buzzer">-</span></div>
+    <div><strong>Latitude:</strong> <span id="latitude">-</span></div>
+    <div><strong>Longitude:</strong> <span id="longitude">-</span></div>
   </div>
 
   <h2>Sensor Data Charts</h2>
@@ -52,6 +57,8 @@
           <th>Temp (°F)</th>
           <th>Distance (cm)</th>
           <th>Buzzer</th>
+          <th>Latitude</th>
+          <th>Longitude</th>
         </tr>
       </thead>
       <tbody>
@@ -59,8 +66,7 @@
       </tbody>
     </table>
   </div>
-
-  <script src="script.js"></script>
+  <script src="/static/script.js"></script>
 </body>
 
 </html>
